@@ -18,7 +18,7 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
 
   try {
     await new Promise((resolve, reject) => {
-      execFile("/opt/homebrew/bin/pdftocairo", [
+      execFile("pdftocairo", [
         "-jpeg",
         "-scale-to", "1024",
         filePath,
@@ -89,7 +89,7 @@ app.post("/convert-url", async (req, res) => {
 
     try {
       await new Promise((resolve, reject) => {
-        execFile("/opt/homebrew/bin/pdftocairo", [
+        execFile("pdftocairo", [
           "-jpeg",
           "-scale-to", "1024",
           tempPdfPath,
