@@ -60,24 +60,21 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
     const boundary = 'BOUNDARY-' + Date.now();
     res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
 
-    const multipartBody = files.map(file => {
+    const multipartChunks = [];
+
+    for (const file of files) {
       const imagePath = path.join(outputPath, file);
       const imageBuffer = fs.readFileSync(imagePath);
 
-      return [
-        `--${boundary}`,
-        `Content-Type: image/jpeg`,
-        `Content-Disposition: attachment; filename="${file}"`,
-        ``,
-        imageBuffer
-      ].join('\r\n');
-    });
+      multipartChunks.push(Buffer.from(`--${boundary}\r\n`));
+      multipartChunks.push(Buffer.from(`Content-Type: image/jpeg\r\n`));
+      multipartChunks.push(Buffer.from(`Content-Disposition: attachment; filename="${file}"\r\n\r\n`));
+      multipartChunks.push(imageBuffer);
+      multipartChunks.push(Buffer.from(`\r\n`));
+    }
 
-    multipartBody.push(`--${boundary}--`);
-
-    res.send(Buffer.concat(multipartBody.map(part =>
-      typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
-    )));
+    multipartChunks.push(Buffer.from(`--${boundary}--\r\n`));
+    res.send(Buffer.concat(multipartChunks));
 
     setTimeout(() => {
       try {
@@ -164,24 +161,21 @@ app.post("/convert-url", async (req, res) => {
     const boundary = 'BOUNDARY-' + Date.now();
     res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
 
-    const multipartBody = files.map(file => {
+    const multipartChunks = [];
+
+    for (const file of files) {
       const imagePath = path.join(outputPath, file);
       const imageBuffer = fs.readFileSync(imagePath);
 
-      return [
-        `--${boundary}`,
-        `Content-Type: image/jpeg`,
-        `Content-Disposition: attachment; filename="${file}"`,
-        ``,
-        imageBuffer
-      ].join('\r\n');
-    });
+      multipartChunks.push(Buffer.from(`--${boundary}\r\n`));
+      multipartChunks.push(Buffer.from(`Content-Type: image/jpeg\r\n`));
+      multipartChunks.push(Buffer.from(`Content-Disposition: attachment; filename="${file}"\r\n\r\n`));
+      multipartChunks.push(imageBuffer);
+      multipartChunks.push(Buffer.from(`\r\n`));
+    }
 
-    multipartBody.push(`--${boundary}--`);
-
-    res.send(Buffer.concat(multipartBody.map(part =>
-      typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
-    )));
+    multipartChunks.push(Buffer.from(`--${boundary}--\r\n`));
+    res.send(Buffer.concat(multipartChunks));
 
     setTimeout(() => {
       try {
