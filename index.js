@@ -33,17 +33,35 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
       });
     });
 
-    const archive = archiver("zip");
-    res.set("Content-Type", "application/zip");
-    res.set("Content-Disposition", `attachment; filename=${outputName}.zip`);
-    archive.pipe(res);
-
     const files = fs.readdirSync(outputPath).filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
-    for (const file of files) {
-      archive.file(path.join(outputPath, file), { name: file });
+    if (files.length === 1) {
+      const imagePath = path.join(outputPath, files[0]);
+      const imageBuffer = fs.readFileSync(imagePath);
+      res.set("Content-Type", "image/jpeg");
+      return res.send(imageBuffer);
     }
 
-    archive.finalize();
+    const boundary = 'BOUNDARY-' + Date.now();
+    res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
+
+    const multipartBody = files.map(file => {
+      const imagePath = path.join(outputPath, file);
+      const imageBuffer = fs.readFileSync(imagePath);
+
+      return [
+        `--${boundary}`,
+        `Content-Type: image/jpeg`,
+        `Content-Disposition: attachment; filename="${file}"`,
+        ``,
+        imageBuffer
+      ].join('\r\n');
+    });
+
+    multipartBody.push(`--${boundary}--`);
+
+    res.send(Buffer.concat(multipartBody.map(part =>
+      typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
+    )));
   } catch (error) {
     console.error("Conversion failed:", error);
     res.status(500).json({ error: "Failed to convert PDF." });
@@ -90,24 +108,54 @@ app.post("/convert-url", async (req, res) => {
       return res.status(500).json({ error: "pdftocairo failed to convert PDF." });
     }
 
-    const archive = archiver("zip");
-    res.set("Content-Type", "application/zip");
-    res.set("Content-Disposition", `attachment; filename=${outputName}.zip`);
-    archive.pipe(res);
-
     const files = fs.readdirSync(outputPath).filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
-    for (const file of files) {
-      archive.file(path.join(outputPath, file), { name: file });
+    if (files.length === 1) {
+      const imagePath = path.join(outputPath, files[0]);
+      const imageBuffer = fs.readFileSync(imagePath);
+      res.set("Content-Type", "image/jpeg");
+      fs.unlinkSync(tempPdfPath);
+      return res.send(imageBuffer);
     }
 
-    archive.finalize();
-    archive.on("end", () => {
-      fs.unlinkSync(tempPdfPath);
+    const boundary = 'BOUNDARY-' + Date.now();
+    fs.unlinkSync(tempPdfPath);
+    res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
+
+    const multipartBody = files.map(file => {
+      const imagePath = path.join(outputPath, file);
+      const imageBuffer = fs.readFileSync(imagePath);
+
+      return [
+        `--${boundary}`,
+        `Content-Type: image/jpeg`,
+        `Content-Disposition: attachment; filename="${file}"`,
+        ``,
+        imageBuffer
+      ].join('\r\n');
     });
+
+    multipartBody.push(`--${boundary}--`);
+
+    res.send(Buffer.concat(multipartBody.map(part =>
+      typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
+    )));
   } catch (error) {
     console.error("URL conversion failed:", error);
     res.status(500).json({ error: "Failed to convert PDF from URL." });
+
   }
+});
+
+// File upload route
+app.post("/upload", upload.single("file"), (req, res) => {
+  const uploadedFile = req.file;
+
+  if (!uploadedFile) {
+    return res.status(400).json({ error: "No file received" });
+  }
+
+  console.log("✅ File uploaded:", uploadedFile.originalname);
+  res.status(200).json({ message: "File received", filename: uploadedFile.filename });
 });
 
 app.listen(3000, () => {
