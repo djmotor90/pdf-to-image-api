@@ -57,24 +57,17 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
       return;
     }
 
-    const boundary = 'BOUNDARY-' + Date.now();
-    res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
-
-    const multipartChunks = [];
+    const archive = archiver("zip");
+    res.set("Content-Type", "application/zip");
+    res.set("Content-Disposition", `attachment; filename=${outputName}.zip`);
+    archive.pipe(res);
 
     for (const file of files) {
       const imagePath = path.join(outputPath, file);
-      const imageBuffer = fs.readFileSync(imagePath);
-
-      multipartChunks.push(Buffer.from(`--${boundary}\r\n`));
-      multipartChunks.push(Buffer.from(`Content-Type: image/jpeg\r\n`));
-      multipartChunks.push(Buffer.from(`Content-Disposition: attachment; filename="${file}"\r\n\r\n`));
-      multipartChunks.push(imageBuffer);
-      multipartChunks.push(Buffer.from(`\r\n`));
+      archive.file(imagePath, { name: file });
     }
 
-    multipartChunks.push(Buffer.from(`--${boundary}--\r\n`));
-    res.send(Buffer.concat(multipartChunks));
+    archive.finalize();
 
     setTimeout(() => {
       try {
@@ -158,24 +151,17 @@ app.post("/convert-url", async (req, res) => {
       return;
     }
 
-    const boundary = 'BOUNDARY-' + Date.now();
-    res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
-
-    const multipartChunks = [];
+    const archive = archiver("zip");
+    res.set("Content-Type", "application/zip");
+    res.set("Content-Disposition", `attachment; filename=${outputName}.zip`);
+    archive.pipe(res);
 
     for (const file of files) {
       const imagePath = path.join(outputPath, file);
-      const imageBuffer = fs.readFileSync(imagePath);
-
-      multipartChunks.push(Buffer.from(`--${boundary}\r\n`));
-      multipartChunks.push(Buffer.from(`Content-Type: image/jpeg\r\n`));
-      multipartChunks.push(Buffer.from(`Content-Disposition: attachment; filename="${file}"\r\n\r\n`));
-      multipartChunks.push(imageBuffer);
-      multipartChunks.push(Buffer.from(`\r\n`));
+      archive.file(imagePath, { name: file });
     }
 
-    multipartChunks.push(Buffer.from(`--${boundary}--\r\n`));
-    res.send(Buffer.concat(multipartChunks));
+    archive.finalize();
 
     setTimeout(() => {
       try {
