@@ -38,7 +38,23 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
       const imagePath = path.join(outputPath, files[0]);
       const imageBuffer = fs.readFileSync(imagePath);
       res.set("Content-Type", "image/jpeg");
-      return res.send(imageBuffer);
+      res.send(imageBuffer);
+
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+          const outputFiles = fs.readdirSync(outputPath)
+            .filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
+          outputFiles.forEach(file => fs.unlinkSync(path.join(outputPath, file)));
+          console.log("🧹 Cleanup complete for:", outputName);
+        } catch (err) {
+          console.error("❌ Cleanup failed:", err);
+        }
+      }, 10 * 60 * 1000); // 10 minutes
+
+      return;
     }
 
     const boundary = 'BOUNDARY-' + Date.now();
@@ -62,11 +78,24 @@ app.post("/convert", upload.single("pdf"), async (req, res) => {
     res.send(Buffer.concat(multipartBody.map(part =>
       typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
     )));
+
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        const outputFiles = fs.readdirSync(outputPath)
+          .filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
+        outputFiles.forEach(file => fs.unlinkSync(path.join(outputPath, file)));
+        console.log("🧹 Cleanup complete for:", outputName);
+      } catch (err) {
+        console.error("❌ Cleanup failed:", err);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+
   } catch (error) {
     console.error("Conversion failed:", error);
     res.status(500).json({ error: "Failed to convert PDF." });
-  } finally {
-    fs.unlinkSync(filePath); // Cleanup uploaded PDF
   }
 });
 
@@ -113,12 +142,26 @@ app.post("/convert-url", async (req, res) => {
       const imagePath = path.join(outputPath, files[0]);
       const imageBuffer = fs.readFileSync(imagePath);
       res.set("Content-Type", "image/jpeg");
-      fs.unlinkSync(tempPdfPath);
-      return res.send(imageBuffer);
+      res.send(imageBuffer);
+
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(tempPdfPath)) {
+            fs.unlinkSync(tempPdfPath);
+          }
+          const outputFiles = fs.readdirSync(outputPath)
+            .filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
+          outputFiles.forEach(file => fs.unlinkSync(path.join(outputPath, file)));
+          console.log("🧹 Cleanup complete for:", outputName);
+        } catch (err) {
+          console.error("❌ Cleanup failed:", err);
+        }
+      }, 10 * 60 * 1000); // 10 minutes
+
+      return;
     }
 
     const boundary = 'BOUNDARY-' + Date.now();
-    fs.unlinkSync(tempPdfPath);
     res.set("Content-Type", `multipart/mixed; boundary=${boundary}`);
 
     const multipartBody = files.map(file => {
@@ -139,6 +182,21 @@ app.post("/convert-url", async (req, res) => {
     res.send(Buffer.concat(multipartBody.map(part =>
       typeof part === 'string' ? Buffer.from(part + '\r\n') : Buffer.concat([Buffer.from('\r\n'), part])
     )));
+
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(tempPdfPath)) {
+          fs.unlinkSync(tempPdfPath);
+        }
+        const outputFiles = fs.readdirSync(outputPath)
+          .filter(file => file.startsWith(outputName) && file.endsWith(".jpg"));
+        outputFiles.forEach(file => fs.unlinkSync(path.join(outputPath, file)));
+        console.log("🧹 Cleanup complete for:", outputName);
+      } catch (err) {
+        console.error("❌ Cleanup failed:", err);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+
   } catch (error) {
     console.error("URL conversion failed:", error);
     res.status(500).json({ error: "Failed to convert PDF from URL." });
