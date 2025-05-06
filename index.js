@@ -12,6 +12,11 @@ app.use(express.json());
 const upload = multer({ dest: "uploads/" });
 
 app.post("/convert", upload.single("pdf"), async (req, res) => {
+  if (!req.file || !req.file.path) {
+    console.error("❌ No file received or file.path is undefined");
+    return res.status(400).json({ error: "No file received" });
+  }
+
   const filePath = req.file.path;
   const outputPath = path.join(__dirname, "output");
   const outputName = `${Date.now()}`;
